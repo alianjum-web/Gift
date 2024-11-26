@@ -1,0 +1,17 @@
+# Ignore .env files in all folders
+frontend/.env
+backend/.env
+sentiment/.env
+
+# Ignore node_modules if it's in any folder (for Node.js projects)
+**/node_modules/
+
+# Ignore build directories (if any)
+frontend/build/
+backend/build/
+sentiment/build/
+
+# Ignore other common files
+.DS_Store
+*.log
+*.bak

@@ -4,12 +4,14 @@ import bcrypt from "bcrypt";
 import connectDB from "../models/db.js";
 import dotenv from "dotenv";
 import pino from "pino";
+import mongoose from "mongoose";
 import {
   registerSchema,
   loginSchema,
   updateUserSchema,
 } from "../models/userValidatorSchema.js";
 import validate from "../middleware/validationMiddleware.js";
+import User from "../models/userModel.js";
 
 const router = express.Router();
 dotenv.config();

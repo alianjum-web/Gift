@@ -38,4 +38,11 @@ const loginSchema = Joi.object({
   }),
 });
 
-export { registerSchema, loginSchema };
+const updateUserSchema = Joi.object({
+  name: Joi.string().min(3).max(30).optional(),
+  email: Joi.string().email().optional(),
+  password: Joi.string().min(6).optional(),
+});
+
+
+export { registerSchema, loginSchema, updateUserSchema };

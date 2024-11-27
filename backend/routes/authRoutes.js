@@ -4,8 +4,12 @@ import bcrypt from "bcrypt";
 import connectDB from "../models/db.js";
 import dotenv from "dotenv";
 import pino from "pino";
-import { registerSchema, loginSchema } from "../models/userValidatorSchema.js";
-import validate from '../middleware/validationMiddleware.js';
+import {
+  registerSchema,
+  loginSchema,
+  updateUserSchema,
+} from "../models/userValidatorSchema.js";
+import validate from "../middleware/validationMiddleware.js";
 
 const router = express.Router();
 dotenv.config();
@@ -63,9 +67,12 @@ router.post("/login", validate(loginSchema), async (req, res) => {
     const db = await connectDB();
     const collection = await db.collection("users");
     const existedUser = await collection.findOne({ email: req.body.email });
-    
+
     if (existedUser) {
-      const result = await bcrypt.compare(req.body.password, existedUser.password);
+      const result = await bcrypt.compare(
+        req.body.password,
+        existedUser.password
+      );
       if (!result) {
         logger.error("Password does not match");
         return res.status(404).json({ message: "Invalid login credentials" });
@@ -73,32 +80,89 @@ router.post("/login", validate(loginSchema), async (req, res) => {
       const payload = {
         user: {
           id: existedUser._id.toString(),
-        }
-      }
-      const token = jwt.sign(payload, JWT_SECRET, { expiresIn: '1h' });
-     // Send token via HttpOnly cookie
-     res.cookie("authToken", token, {
-      httpOnly: true,
-      secure: true, // Set to true in production with HTTPS
-      sameSite: "Strict",
-    });
-    logger.info("User logged in successfully")
-    return res.status(200).json({ message: 'User logged in successfully' });
+        },
+      };
+      const token = jwt.sign(payload, JWT_SECRET, { expiresIn: "1h" });
+      // Send token via HttpOnly cookie
+      res.cookie("authToken", token, {
+        httpOnly: true,
+        secure: true, // Set to true in production with HTTPS
+        sameSite: "Strict",
+      });
+      logger.info("User logged in successfully");
+      return res.status(200).json({ message: "User logged in successfully" });
     } else {
       logger.error("User not found");
-      return res.status(403).json({message: "User not found" });
+      return res.status(403).json({ message: "User not found" });
     }
   } catch (e) {
     logger.error(e);
-    return res.status(500).json({ message: "Internal server error", detail: error.message })
+    return res
+      .status(500)
+      .json({ message: "Internal server error", detail: error.message });
   }
-
 });
 
-router.put("/update", (req, res) => {});
+router.put("/update", validate(updateUserSchema), async (req, res) => {
+  try {
+    
+    const emailFromHeader = req.headers.email;
+    if (!emailFromHeader) {
+      logger.error("Email is not present");
+      return res
+        .status(400)
+        .json({ message: "Email is not present in the request header" });
+    }
 
-router.delete("/logout", (req, res) => {});
+    const db = await connectDB();
+    const collection = db.collection("users");
 
+    const existedUser = await collection.findOne({ email: emailFromHeader });
+    if (existedUser) {
+      const updatedFields = {};
+      if (req.body.name) updatedFields.firstName = req.body.name;
+      if (req.body.email) updatedFields.email = req.body.email;
+      if (req.body.password) {
+        const hash = await bcrypt.hash(password, 10);
+        updatedFields.password = hash;
+      }
+      updatedFields.updateAt = new Date();
+
+      const updatedUser = await collection.findOneAndUpdate(
+        { email: emailFromHeader },
+        { $set: updatedFields },
+        { returnDocument: "after" } // Correct option for MongoDB driver v4+
+      );
+
+      const payload = {
+        user: {
+          id: updatedUser.value._id.toString(),
+        },
+      };
+
+      const token = jwt.sign(payload, JWT_SECRET, { expiresIn: "1h" });
+      res.cookie("authToken", token, {
+        httpOnly: true,
+        secure: true,
+        sameSite: "Strict",
+      });
+
+      logger.info("user updated successfully");
+      return res.status(200).json({ message: "user updated successfully" });
+    } else {
+      logger.error("user does not exit in the database");
+      return res.status(401).json({ message: "user does not already exited" });
+    }
+  } catch (error) {
+    logger.error("Error in update API");
+    return res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+router.delete("/logout", (req, res) => {
+  res.clearCookie('authToken');
+  return res.status(200).json({ message: "Logout Successful" });
+});
 
 /*
 

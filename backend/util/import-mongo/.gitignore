@@ -1,0 +1,10 @@
+
+# Ignore node_modules if it's in any folder (for Node.js projects)
+**/node_modules/
+
+
+# Ignore other common files
+.DS_Store
+*.log
+*.bak
+*.env

@@ -1,6 +1,5 @@
-
 const config = {
-  backendUrl: process.env.REACT_APP_BACKEND_URL || 'http://localhost:3060',
+  backendUrl: import.meta.env.VITE_BACKEND_URL || 'http://localhost:3060',
 };
 
 console.log(`backendUrl in config.js: ${config.backendUrl}`)

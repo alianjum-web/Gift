@@ -23,7 +23,7 @@ app.use(pinoHttp({ logger }));
 
 connectDB();
 
-app.use("/api/gift", giftRoutes);
+app.use("/api/gifts", giftRoutes);
 app.use("/api/auth", authRoutes);
 app.use("/api/search", searchRoutes);
 

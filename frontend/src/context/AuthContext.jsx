@@ -1,10 +1,11 @@
-import { createContext, useState } from 'react';
-import PropTypes from 'prop-types';
+// AuthContext.jsx
+import { createContext, useState, useContext } from "react";
+import PropTypes from "prop-types";
 
 // Create Context
-const AppContext = createContext();
+export const AppContext = createContext();
 
-// AuthProvider component that provides context values
+// AuthProvider component
 export const AuthProvider = ({ children }) => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [userName, setUserName] = useState("");
@@ -16,8 +17,7 @@ export const AuthProvider = ({ children }) => {
   );
 };
 
-// PropTypes validation for children prop
+// PropTypes validation
 AuthProvider.propTypes = {
   children: PropTypes.node.isRequired,
 };
-

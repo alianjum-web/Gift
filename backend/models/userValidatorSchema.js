@@ -12,16 +12,16 @@ const registerSchema = Joi.object({
     "string.min": "Last Name must be at least 2 characters",
     "string.max": "Last Name cannot exceed 30 characters",
   }),
-  age: Joi.number().integer().min(0).required().messages({
-    "number.base": "Age must be a number",
-    "number.min": "Age must be a positive number",
-    "number.empty": "Age is required",
-  }),
-  username: Joi.string().min(3).max(20).required().messages({
-    "string.empty": "Username is required",
-    "string.min": "Username must be at least 3 characters",
-    "string.max": "Username cannot exceed 20 characters",
-  }),
+  // age: Joi.number().integer().min(0).required().messages({
+  //   "number.base": "Age must be a number",
+  //   "number.min": "Age must be a positive number",
+  //   "number.empty": "Age is required",
+  // }),
+  // username: Joi.string().min(3).max(20).required().messages({
+  //   "string.empty": "Username is required",
+  //   "string.min": "Username must be at least 3 characters",
+  //   "string.max": "Username cannot exceed 20 characters",
+  // }),
   email: Joi.string().email().required().messages({
     "string.empty": "Email is required",
     "string.email": "Email must be valid",

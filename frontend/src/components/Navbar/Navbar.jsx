@@ -1,7 +1,7 @@
 import  { useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import {urlConfig} from '../../config';
-import { useAppContext } from '../../context/useAppContext';
+import { useAppContext } from "../../context/useAppContext";
 
 export default function Navbar() {
     const { isLoggedIn, setIsLoggedIn, userName, setUserName } = useAppContext();

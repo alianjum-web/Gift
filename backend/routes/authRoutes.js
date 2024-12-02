@@ -1,17 +1,16 @@
 import express from "express";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcrypt";
-import connectDB from "../models/db.js";
 import dotenv from "dotenv";
 import pino from "pino";
-import mongoose from "mongoose";
 import {
   registerSchema,
   loginSchema,
   updateUserSchema,
 } from "../models/userValidatorSchema.js";
 import validate from "../middleware/validationMiddleware.js";
-import User from "../models/userModel.js";
+import { User } from "../models/userModel.js";
+import authenticationToken from "../middleware/authMiddleware.js";
 
 const router = express.Router();
 dotenv.config();
@@ -19,62 +18,110 @@ dotenv.config();
 const logger = pino();
 const JWT_SECRET = process.env.JWT_SECRET;
 
+// mongoose level code
 router.post("/register", validate(registerSchema), async (req, res) => {
   try {
-    const db = await connectDB();
-    const collection = db.collection("users");
-    const existingUser = await collection.findOne({ email: req.body.email });
+    console.log("Request body:", req.body);
+
+    const { username, firstName, lastName, age, email, password } = req.body;
+    const existingUser = await User.findOne({ email });
 
     if (existingUser) {
-      logger.error("Email id already exist");
+      console.log("User already exists:", existingUser);
       return res
         .status(400)
-        .json({ message: "User with this email already exist" });
+        .json({ message: "User with this email already exists" });
     }
 
-    const { password } = req.body;
-    const hash = await bcrypt.hash(password, 10);
-
-    const newUser = await collection.insertOne({
-      name: req.body.name,
-      email: req.body.email,
-      password: hash,
-      createdAt: new Date(),
+    const newUser = new User({
+      firstName,
+      lastName,
+      username,
+      age,
+      email,
+      password,
     });
 
     await newUser.save();
+    console.log("New user created:", newUser);
+
     const payload = {
       user: {
-        id: newUser.insertedId,
+        id: newUser._id,
       },
     };
 
-    const token = jwt.sign(payload, JWT_SECRET, { expiresIn: "1h" });
+    const token = jwt.sign(payload, process.env.JWT_SECRET, {
+      expiresIn: "1h",
+    });
+    console.log("Generated JWT token:", token);
 
-    // Send token via HttpOnly cookie
     res.cookie("authToken", token, {
       httpOnly: true,
-      secure: true, // Set to true in production with HTTPS
+      secure: process.env.NODE_ENV === "production",
       sameSite: "Strict",
     });
 
     return res.status(200).json({ message: "User registered successfully" });
   } catch (error) {
-    console.error("Unable to register user");
+    console.error("Error during registration:", error);
+    res.status(500).json({ message: "Unable to register user" });
   }
 });
+// validate(registerSchema),
+//mongoDB direct integration code
+// router.post("/register", validate(registerSchema), async (req, res) => {
+//   try {
+//     const db = await connectDB();
+//     const collection = db.collection("users");
+//     const existingUser = await collection.findOne({ email: req.body.email });
+
+//     if (existingUser) {
+//       logger.error("Email id already exist");
+//       return res
+//         .status(400)
+//         .json({ message: "User with this email already exist" });
+//     }
+
+//     const { password } = req.body;
+//     const hash = await bcrypt.hash(password, 10);
+
+//     const newUser = await collection.insertOne({
+//       name: req.body.name,
+//       email: req.body.email,
+//       password: hash,
+//       createdAt: new Date(),
+//     });
+
+//     await newUser.save();
+//     const payload = {
+//       user: {
+//         id: newUser.insertedId,
+//       },
+//     };
+
+//     const token = jwt.sign(payload, JWT_SECRET, { expiresIn: "1h" });
+
+//     // Send token via HttpOnly cookie
+//     res.cookie("authToken", token, {
+//       httpOnly: true,
+//       secure: process.env.NODE_ENV === "production", // Set to true in production with HTTPS
+//       sameSite: "Strict",
+//     });
+
+//     return res.status(200).json({ message: "User registered successfully" });
+//   } catch (error) {
+//     console.error("Unable to register user");
+//   }
+// });
 
 router.post("/login", validate(loginSchema), async (req, res) => {
   try {
-    const db = await connectDB();
-    const collection = await db.collection("users");
-    const existedUser = await collection.findOne({ email: req.body.email });
+    const { email, password } = req.body;
+    const existedUser = await User.findOne({ email });
 
     if (existedUser) {
-      const result = await bcrypt.compare(
-        req.body.password,
-        existedUser.password
-      );
+      const result = await bcrypt.compare(password, existedUser.password);
       if (!result) {
         logger.error("Password does not match");
         return res.status(404).json({ message: "Invalid login credentials" });
@@ -82,13 +129,14 @@ router.post("/login", validate(loginSchema), async (req, res) => {
       const payload = {
         user: {
           id: existedUser._id.toString(),
+          tokenVersion: existedUser.tokenVersion,
         },
       };
       const token = jwt.sign(payload, JWT_SECRET, { expiresIn: "1h" });
       // Send token via HttpOnly cookie
       res.cookie("authToken", token, {
         httpOnly: true,
-        secure: true, // Set to true in production with HTTPS
+        secure: process.env.NODE_ENV === "production", // Set to true in production with HTTPS
         sameSite: "Strict",
       });
       logger.info("User logged in successfully");
@@ -101,70 +149,184 @@ router.post("/login", validate(loginSchema), async (req, res) => {
     logger.error(e);
     return res
       .status(500)
-      .json({ message: "Internal server error", detail: error.message });
+      .json({ message: "Internal server error", detail: e.message });
   }
 });
+//MongoDB direct code
+// router.post("/login", validate(loginSchema), async (req, res) => {
+//   try {
+//     const db = await connectDB();
+//     const collection = await db.collection("users");
+//     const existedUser = await collection.findOne({ email: req.body.email });
 
-router.put("/update", validate(updateUserSchema), async (req, res) => {
-  try {
-    
-    const emailFromHeader = req.headers.email;
-    if (!emailFromHeader) {
-      logger.error("Email is not present");
-      return res
-        .status(400)
-        .json({ message: "Email is not present in the request header" });
-    }
+//     if (existedUser) {
+//       const result = await bcrypt.compare(
+//         req.body.password,
+//         existedUser.password
+//       );
+//       if (!result) {
+//         logger.error("Password does not match");
+//         return res.status(404).json({ message: "Invalid login credentials" });
+//       }
+//       const payload = {
+//         user: {
+//           id: existedUser._id.toString(),
+//         },
+//       };
+//       const token = jwt.sign(payload, JWT_SECRET, { expiresIn: "1h" });
+//       // Send token via HttpOnly cookie
+//       res.cookie("authToken", token, {
+//         httpOnly: true,
+//         secure: process.env.NODE_ENV === "production", // Set to true in production with HTTPS
+//         sameSite: "Strict",
+//       });
+//       logger.info("User logged in successfully");
+//       return res.status(200).json({ message: "User logged in successfully" });
+//     } else {
+//       logger.error("User not found");
+//       return res.status(403).json({ message: "User not found" });
+//     }
+//   } catch (e) {
+//     logger.error(e);
+//     return res
+//       .status(500)
+//       .json({ message: "Internal server error", detail: e.message });
+//   }
+// });
 
-    const db = await connectDB();
-    const collection = db.collection("users");
+router.put(
+  "/update",
+  authenticationToken,
+  validate(updateUserSchema),
+  async (req, res) => {
+    try {
+      const emailFromAuth = req.user.email; // Email from authentication middleware
+      logger.info(`Email from authentication: ${emailFromAuth}`); // Log the email
 
-    const existedUser = await collection.findOne({ email: emailFromHeader });
-    if (existedUser) {
-      const updatedFields = {};
-      if (req.body.name) updatedFields.firstName = req.body.name;
-      if (req.body.email) updatedFields.email = req.body.email;
-      if (req.body.password) {
-        const hash = await bcrypt.hash(password, 10);
-        updatedFields.password = hash;
+      if (!emailFromAuth) {
+        logger.error("Email is not present in authentication data");
+        return res
+          .status(400)
+          .json({ message: "Email is missing in authentication data" });
       }
-      updatedFields.updateAt = new Date();
 
-      const updatedUser = await collection.findOneAndUpdate(
-        { email: emailFromHeader },
+      const existingUser = await User.findOne({ email: emailFromAuth });
+      if (!existingUser) {
+        logger.error("User does not exist in the database");
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      const updatedFields = {};
+      if (req.body.username) updatedFields.username = req.body.username;
+      if (req.body.email) updatedFields.email = req.body.email;
+
+      let isPasswordChanged = false;
+      if (req.body.password) {
+        const hash = await bcrypt.hash(req.body.password, 10);
+        updatedFields.password = hash;
+        updatedFields.tokenVersion = existingUser.tokenVersion + 1;
+        isPasswordChanged = true;
+      }
+
+      updatedFields.updatedAt = new Date();
+
+      const updatedUser = await User.findOneAndUpdate(
+        { email: emailFromAuth },
         { $set: updatedFields },
-        { returnDocument: "after" } // Correct option for MongoDB driver v4+
+        { new: true } // Return the updated document
       );
 
-      const payload = {
-        user: {
-          id: updatedUser.value._id.toString(),
-        },
-      };
+      if (isPasswordChanged) {
+        const payload = {
+          user: {
+            id: updatedUser._id.toString(),
+            tokenVersion: updatedUser.tokenVersion,
+          },
+        };
 
-      const token = jwt.sign(payload, JWT_SECRET, { expiresIn: "1h" });
-      res.cookie("authToken", token, {
-        httpOnly: true,
-        secure: true,
-        sameSite: "Strict",
-      });
+        const token = jwt.sign(payload, process.env.JWT_SECRET, {
+          expiresIn: '2h',
+        });
+        res.cookie("authToken", token, {
+          httpOnly: true,
+          secure: process.env.NODE_ENV === "production",
+          sameSite: "Strict",
+        });
+      }
 
-      logger.info("user updated successfully");
-      return res.status(200).json({ message: "user updated successfully" });
-    } else {
-      logger.error("user does not exit in the database");
-      return res.status(401).json({ message: "user does not already exited" });
+      logger.info("User updated successfully");
+      return res
+        .status(200)
+        .json({ message: "User updated successfully", user: updatedUser });
+    } catch (error) {
+      logger.error("Error in update API", error);
+      return res.status(500).json({ message: "Internal server error" });
     }
-  } catch (error) {
-    logger.error("Error in update API");
-    return res.status(500).json({ message: "Internal server error" });
   }
-});
+);
+
+// router.put("/update", validate(updateUserSchema), async (req, res) => {
+//   try {
+
+//     const emailFromHeader = req.headers.email;
+//     if (!emailFromHeader) {
+//       logger.error("Email is not present");
+//       return res
+//         .status(400)
+//         .json({ message: "Email is not present in the request header" });
+//     }
+
+//     const db = await connectDB();
+//     const collection = db.collection("users");
+
+//     const existedUser = await collection.findOne({ email: emailFromHeader });
+//     if (existedUser) {
+//       const updatedFields = {};
+//       if (req.body.name) updatedFields.firstName = req.body.name;
+//       if (req.body.email) updatedFields.email = req.body.email;
+//       if (req.body.password) {
+//         const hash = await bcrypt.hash(password, 10);
+//         updatedFields.password = hash;
+//       }
+//       updatedFields.updateAt = new Date();
+
+//       const updatedUser = await collection.findOneAndUpdate(
+//         { email: emailFromHeader },
+//         { $set: updatedFields },
+//         { returnDocument: "after" } // Correct option for MongoDB driver v4+
+//       );
+
+//       const payload = {
+//         user: {
+//           id: updatedUser.value._id.toString(),
+//         },
+//       };
+
+//       const token = jwt.sign(payload, JWT_SECRET, { expiresIn: "1h" });
+//       res.cookie("authToken", token, {
+//         httpOnly: true,
+//         secure: true,
+//         sameSite: "Strict",
+//       });
+
+//       logger.info("user updated successfully");
+//       return res.status(200).json({ message: "user updated successfully" });
+//     } else {
+//       logger.error("user does not exit in the database");
+//       return res.status(401).json({ message: "user does not already exited" });
+//     }
+//   } catch (error) {
+//     logger.error("Error in update API");
+//     return res.status(500).json({ message: "Internal server error" });
+//   }
+// });
 
 router.delete("/logout", (req, res) => {
-  res.clearCookie('authToken');
+  res.clearCookie("authToken");
   return res.status(200).json({ message: "Logout Successful" });
 });
+
+export default router;
 
 /*
 

@@ -2,6 +2,21 @@ import Joi from "joi";
 
 // Joi Schema for User Registration
 const registerSchema = Joi.object({
+  firstName: Joi.string().min(2).max(30).required().messages({
+    "string.empty": "First Name is required",
+    "string.min": "First Name must be at least 2 characters",
+    "string.max": "First Name cannot exceed 30 characters",
+  }),
+  lastName: Joi.string().min(2).max(30).required().messages({
+    "string.empty": "Last Name is required",
+    "string.min": "Last Name must be at least 2 characters",
+    "string.max": "Last Name cannot exceed 30 characters",
+  }),
+  age: Joi.number().integer().min(0).required().messages({
+    "number.base": "Age must be a number",
+    "number.min": "Age must be a positive number",
+    "number.empty": "Age is required",
+  }),
   username: Joi.string().min(3).max(20).required().messages({
     "string.empty": "Username is required",
     "string.min": "Username must be at least 3 characters",
@@ -27,6 +42,7 @@ const registerSchema = Joi.object({
     }),
 });
 
+
 // Joi Schema for User Login
 const loginSchema = Joi.object({
   email: Joi.string().email().required().messages({
@@ -39,6 +55,7 @@ const loginSchema = Joi.object({
 });
 
 const updateUserSchema = Joi.object({
+  username: Joi.string().min(3).max(30).optional() ,
   name: Joi.string().min(3).max(30).optional(),
   email: Joi.string().email().optional(),
   password: Joi.string().min(6).optional(),

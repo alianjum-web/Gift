@@ -1,7 +1,8 @@
 import dotenv from "dotenv";
 import mongoose from "mongoose";
+import { Gift } from "./giftSchema.js";
 
-dotenv.config();
+dotenv.config({path: '../.env'});
 
 const uri = process.env.MONGO_URL;
 
@@ -15,12 +16,12 @@ async function connectDB() {
     const connectionInstance = await mongoose.connect(uri, {
       dbName: "giftdb"
     });
-
+    const gifts = await Gift.find({});
     console.log(`Connected to MongoDB successfully at ${connectionInstance.connection.host}`);
   } catch (error) {
     console.error("Error while connecting to MongoDB:", error);
     process.exit(1);
   }
-}
+};
 
 export default connectDB;

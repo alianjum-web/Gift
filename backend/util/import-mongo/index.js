@@ -3,26 +3,11 @@ import { dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import * as fs from "node:fs";
 import connectDB from "../../models/db.js";
+import { Gift } from "../../models/giftSchema.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 const filename = `${__dirname}/gifts.json`;
-
-const giftSchema = new mongoose.Schema({
-  id: String,
-  name: String,
-  category: String,
-  condition: String,
-  posted_by: String,
-  zipcode: String,
-  date_added: Number,
-  age_days: Number,
-  age_years: Number,
-  description: String,
-  image: String,
-});
-
-const Gift = mongoose.model("Gift", giftSchema);
 
 async function insertData() {
   try {

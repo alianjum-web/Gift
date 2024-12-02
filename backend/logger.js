@@ -1,0 +1,17 @@
+import pino from 'pino';
+
+let logger;
+
+if (process.env.NODE_ENV !== 'production') {
+    logger = pino({
+        level: 'debug',
+        transport: {
+            target: "pino-pretty",
+        },
+    });
+} else {
+    // production
+    logger = pino();
+}
+
+export default logger;

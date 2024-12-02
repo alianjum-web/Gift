@@ -1,5 +1,7 @@
-import mongoose from 'mongoose';
-import validate from '../middleware/validationMiddleware';
+import mongoose, { Schema }from 'mongoose';
+import bcrypt from 'bcrypt';
+// import validate from '../middleware/validationMiddleware';
+// import { types } from 'joi';
 
 const userSchema =  new Schema({
     firstName: {
@@ -30,19 +32,18 @@ const userSchema =  new Schema({
     },
     password: {
       type: String,
-      required: [true, "Password is required"],
-      minlength: [8, "Password must be at least 8 characters"],
-      maxlength: [32, "Password cannot exceed 32 characters"],
+      required: true,
       validate: {
         validator: function (value) {
-          // Custom validation for password complexity
-          const passwordRegex =
-            /^(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,32}$/;
-          return passwordRegex.test(value);
+          // Regex for at least one uppercase letter, one number, and one special character
+          return /^(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/.test(value);
         },
-        message:
-          "Password must include at least one uppercase letter, one number, and one special character",
+        message: "Password must include at least one uppercase letter, one number, and one special character",
       },
+    },
+    tokenVersion: {
+      type: Number,
+      default: 0,
     },
     createdAt: {
       type: Date,
@@ -53,5 +54,13 @@ const userSchema =  new Schema({
       default: Date.now,
     },
   });
+
+  userSchema.pre('save', async function (next) {
+    if (!this.isModified('password')) return next(); // Fix: use 'password' instead of 'Password'
+
+    this.password = await bcrypt.hash(this.password, 10);
+    next();
+  });
+  
 
 export const User = mongoose.model('User', userSchema);

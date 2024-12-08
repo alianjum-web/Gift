@@ -1,6 +1,7 @@
 import express from "express";
 import cookieParser from "cookie-parser";
 import cors from "cors";
+import helmet from 'helmet';
 import pinoHttp from "pino-http";
 import logger from "./logger.js";
 
@@ -13,9 +14,19 @@ import connectDB from "./models/db.js";
 const app = express();
 const PORT = 3060;
 
+app.use(
+  cors({
+    origin: "http://localhost:5173", // Allow requests from your React app
+    credentials: true, // Allow cookies to be sent with requests
+  })
+);
+
+app.use(helmet());
 app.use(express.json());
 app.use(cookieParser());
-app.use("*", cors());
+// app.use("*", cors());
+
+
 app.use(express.urlencoded({ extended: true }));
 
 

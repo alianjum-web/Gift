@@ -4,6 +4,7 @@ import logger from "../logger.js";
 
 const authenticationToken = async (req, res, next) => {
   const token = req.cookies.authToken;
+  // const token = req.headers('Authorization').split('')[1];
   if (!token) {
     logger.error("No token found in cookies.");
     return res.status(403).json({ message: "Authentication token missing" });

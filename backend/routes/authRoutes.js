@@ -3,6 +3,7 @@ import jwt from "jsonwebtoken";
 import bcrypt from "bcrypt";
 import dotenv from "dotenv";
 import pino from "pino";
+import rateLimit from "express-rate-limit";
 import {
   registerSchema,
   loginSchema,
@@ -17,6 +18,11 @@ dotenv.config();
 
 const logger = pino();
 const JWT_SECRET = process.env.JWT_SECRET;
+const TOKEN_EXPIRY = process.env.TOKEN_EXPIRY;
+const loginRateLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 30,
+});
 
 // mongoose level code
 router.post("/register", validate(registerSchema), async (req, res) => {
@@ -54,7 +60,8 @@ router.post("/register", validate(registerSchema), async (req, res) => {
     const token = jwt.sign(payload, process.env.JWT_SECRET, {
       expiresIn: "1h",
     });
-    console.log("Generated JWT token:", token);
+
+    console.log("Generated JWT token:", authToken);
 
     res.cookie("authToken", token, {
       httpOnly: true,
@@ -115,43 +122,97 @@ router.post("/register", validate(registerSchema), async (req, res) => {
 //   }
 // });
 
-router.post("/login", validate(loginSchema), async (req, res) => {
-  try {
-    const { email, password } = req.body;
-    const existedUser = await User.findOne({ email });
+router.post(
+  "/login",
+  validate(loginSchema),
+  loginRateLimiter,
+  async (req, res) => {
+    try {
+      const { email, password } = req.body;
+      const existingUser = await User.findOne({ email });
 
-    if (existedUser) {
-      const result = await bcrypt.compare(password, existedUser.password);
-      if (!result) {
-        logger.error("Password does not match");
-        return res.status(404).json({ message: "Invalid login credentials" });
+      if (!existingUser) {
+        logger.error("User not found");
+        return res.status(403).json({ message: "Invalid login credentials" });
       }
+
+      const passwordMatches = await bcrypt.compare(
+        password,
+        existingUser.password
+      );
+      if (!passwordMatches) {
+        logger.error("Incorrect password");
+        return res.status(403).json({ message: "Invalid login credentials" });
+      }
+
       const payload = {
         user: {
-          id: existedUser._id.toString(),
-          tokenVersion: existedUser.tokenVersion,
+          id: existingUser._id.toString(),
+          tokenVersion: existingUser.tokenVersion,
         },
       };
-      const token = jwt.sign(payload, JWT_SECRET, { expiresIn: "1h" });
+
+      const token = jwt.sign(payload, JWT_SECRET, { expiresIn: TOKEN_EXPIRY });
+
       // Send token via HttpOnly cookie
       res.cookie("authToken", token, {
         httpOnly: true,
-        secure: process.env.NODE_ENV === "production", // Set to true in production with HTTPS
+        secure: process.env.NODE_ENV === "production", // Secure only in production
         sameSite: "Strict",
+        maxAge: 3 * 600 * 1000, // 1 hour in ms
       });
+
       logger.info("User logged in successfully");
       return res.status(200).json({ message: "User logged in successfully" });
-    } else {
-      logger.error("User not found");
-      return res.status(403).json({ message: "User not found" });
+    } catch (error) {
+      logger.error(error.message);
+      return res
+        .status(500)
+        .json({ message: "Internal server error", detail: error.message });
     }
-  } catch (e) {
-    logger.error(e);
-    return res
-      .status(500)
-      .json({ message: "Internal server error", detail: e.message });
+  }
+);
+
+// Middleware to verify the token from cookies
+router.get("/me", async (req, res) => {
+  const token = req.cookies.authToken;
+  // const token = req.headers('Authorization').split('')[1];
+  if (!token) {
+    logger.error("No token found in cookies.");
+    return res.status(403).json({ message: "Authentication token missing" });
+  }
+
+  const JWT_SECRET = process.env.JWT_SECRET;
+  try {
+    jwt.verify(token, JWT_SECRET, async (err, decoded) => {
+      if (err) {
+        logger.error("Invalid token", err);
+        return res.status(401).json({ message: "Invalid token" });
+      }
+
+      const user = await User.findOne({ _id: decoded.user.id });
+      if (!user || user.tokenVersion !== decoded.user.tokenVersion) {
+        logger.error(
+          "Token is invalid or expired due to mismatched tokenVersion."
+        );
+        return res.status(401).json({ message: "Token is invalid or expired" });
+      }
+
+      logger.info(`User authenticated: ${user.email}`);
+      req.user = {
+        id: user._id,
+        email: user.email,
+        tokenVersion: user.tokenVersion,
+      };
+
+      return res.status(200).json({ message: "user have the token" });
+    });
+  } catch (error) {
+    logger.error("Token verification failed ", error);
+    return res.status(401).json({ message: "Invalid authenticated token" });
   }
 });
+
 //MongoDB direct code
 // router.post("/login", validate(loginSchema), async (req, res) => {
 //   try {
@@ -245,7 +306,7 @@ router.put(
         };
 
         const token = jwt.sign(payload, process.env.JWT_SECRET, {
-          expiresIn: '2h',
+          expiresIn: "2h",
         });
         res.cookie("authToken", token, {
           httpOnly: true,
@@ -257,7 +318,10 @@ router.put(
       logger.info("User updated successfully");
       return res
         .status(200)
-        .json({ message: "User updated successfully", user: updatedUser });
+        .json(
+          { message: "User updated successfully", user: updatedUser },
+          token
+        );
     } catch (error) {
       logger.error("Error in update API", error);
       return res.status(500).json({ message: "Internal server error" });
@@ -322,7 +386,11 @@ router.put(
 // });
 
 router.delete("/logout", (req, res) => {
-  res.clearCookie("authToken");
+  res.clearCookie("authToken", {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "strict",
+  });
   return res.status(200).json({ message: "Logout Successful" });
 });
 

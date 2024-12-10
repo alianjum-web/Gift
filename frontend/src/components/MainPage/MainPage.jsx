@@ -10,9 +10,7 @@ function MainPage() {
         // fetch all gifts
         const fetchGifts = async () => {
             try {
-                // let url = `${urlConfig.backendUrl}/api/gifts`
-                let url = ` https://gifttoanjum.up.railway.app/api/gifts`
-
+                let url = `${urlConfig.backendUrl}/api/gifts`
                
                 const response = await fetch(url);
                 if (!response.ok) {

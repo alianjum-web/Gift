@@ -174,43 +174,44 @@ router.post(
 );
 
 // Middleware to verify the token from cookies
-router.get("/me", async (req, res) => {
-  const token = req.cookies.authToken;
-  // const token = req.headers('Authorization').split('')[1];
-  if (!token) {
-    logger.error("No token found in cookies.");
-    return res.status(403).json({ message: "Authentication token missing" });
-  }
+router.get("/me",authenticationToken, async (req, res) => {
+  // const token = req.cookies.authToken;
+  // // const token = req.headers('Authorization').split('')[1];
+  // if (!token) {
+  //   logger.error("No token found in cookies.");
+  //   return res.status(403).json({ message: "Authentication token missing" });
+  // }
 
-  const JWT_SECRET = process.env.JWT_SECRET;
-  try {
-    jwt.verify(token, JWT_SECRET, async (err, decoded) => {
-      if (err) {
-        logger.error("Invalid token", err);
-        return res.status(401).json({ message: "Invalid token" });
-      }
+  // const JWT_SECRET = process.env.JWT_SECRET;
+  // try {
+  //   jwt.verify(token, JWT_SECRET, async (err, decoded) => {
+  //     if (err) {
+  //       logger.error("Invalid token", err);
+  //       return res.status(401).json({ message: "Invalid token" });
+  //     }
 
-      const user = await User.findOne({ _id: decoded.user.id });
-      if (!user || user.tokenVersion !== decoded.user.tokenVersion) {
-        logger.error(
-          "Token is invalid or expired due to mismatched tokenVersion."
-        );
-        return res.status(401).json({ message: "Token is invalid or expired" });
-      }
+  //     const user = await User.findOne({ _id: decoded.user.id });
+  //     if (!user || user.tokenVersion !== decoded.user.tokenVersion) {
+  //       logger.error(
+  //         "Token is invalid or expired due to mismatched tokenVersion."
+  //       );
+  //       return res.status(401).json({ message: "Token is invalid or expired" });
+  //     }
 
-      logger.info(`User authenticated: ${user.email}`);
-      req.user = {
-        id: user._id,
-        email: user.email,
-        tokenVersion: user.tokenVersion,
-      };
+  //     logger.info(`User authenticated: ${user.email}`);
+  //     req.user = {
+  //       id: user._id,
+  //       email: user.email,
+  //       tokenVersion: user.tokenVersion,
+  //     };
 
-      return res.status(200).json({ message: "user have the token" });
-    });
-  } catch (error) {
-    logger.error("Token verification failed ", error);
-    return res.status(401).json({ message: "Invalid authenticated token" });
-  }
+  //     return res.status(200).json({ message: "user have the token" });
+  //   });
+  // } catch (error) {
+  //   logger.error("Token verification failed ", error);
+  //   return res.status(401).json({ message: "Invalid authenticated token" });
+  // }
+  return res.status(200).json({message: "User us authenticated"})
 });
 
 //MongoDB direct code

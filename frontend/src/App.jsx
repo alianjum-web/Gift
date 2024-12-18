@@ -7,6 +7,7 @@ import './App.css';
 import Navbar from './components/Navbar/Navbar.jsx';
 import DetailsPage from './components/DetailsPage/DetailsPage.jsx';
 import SearchPage from './components/SearchPage/SearchPage.jsx';
+import Profile from './components/Profile/Profile.jsx';
 
 function App() {
 
@@ -20,6 +21,8 @@ function App() {
           <Route path="/app/register" element={<RegisterPage />} />
           <Route path="/app/product/:productId" element={<DetailsPage/>} />
           <Route path="/app/search" element={<SearchPage/>} />
+          <Route path="/app/profile" element={<Profile/>} />
+
         </Routes>
         </>
   );

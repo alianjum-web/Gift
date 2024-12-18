@@ -157,10 +157,10 @@ router.post(
       // Send token via HttpOnly cookie
       res.cookie("authToken", token, {
         httpOnly: true,
-        secure: process.env.NODE_ENV === "production", // Secure only in production
+        secure: process.env.NODE_ENV === "production",
         sameSite: "None",
-        maxAge: 3 * 600 * 1000, // 1 hour in ms
-      });
+        maxAge: 3600 * 1000, // 1 hour (or adjust as needed)
+      });      
 
       logger.info("User logged in successfully");
       return res.status(200).json({ message: "User logged in successfully" });
@@ -211,7 +211,7 @@ router.get("/me",authenticationToken, async (req, res) => {
   //   logger.error("Token verification failed ", error);
   //   return res.status(401).json({ message: "Invalid authenticated token" });
   // }
-  return res.status(200).json({message: "User us authenticated"})
+  return res.status(200).json({message: "User is authenticated"})
 });
 
 //MongoDB direct code

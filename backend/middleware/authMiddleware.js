@@ -3,6 +3,8 @@ import { User } from "../models/userModel.js";
 import logger from "../logger.js";
 
 const authenticationToken = async (req, res, next) => {
+  console.log("Received token:", req.cookies.authToken);
+
   const token = req.cookies.authToken;
   // const token = req.headers('Authorization').split('')[1];
   if (!token) {

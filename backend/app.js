@@ -22,7 +22,7 @@ const PORT = 3060;
 // );
 const allowedOrigins = [
   "http://localhost:5173", // Local development
-  "https://gift-seven-smoky.vercel.app", // Deployed frontend
+  "https://gift-seven-smoky.vercel.app",// Deployed frontend
 ];
 
 app.use(

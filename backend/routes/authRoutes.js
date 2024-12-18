@@ -66,7 +66,7 @@ router.post("/register", validate(registerSchema), async (req, res) => {
     res.cookie("authToken", token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
-      sameSite: "Strict",
+      sameSite: "None",
     });
 
     return res.status(200).json({ message: "User registered successfully" });
@@ -113,7 +113,7 @@ router.post("/register", validate(registerSchema), async (req, res) => {
 //     res.cookie("authToken", token, {
 //       httpOnly: true,
 //       secure: process.env.NODE_ENV === "production", // Set to true in production with HTTPS
-//       sameSite: "Strict",
+//       sameSite: "None",
 //     });
 
 //     return res.status(200).json({ message: "User registered successfully" });
@@ -158,7 +158,7 @@ router.post(
       res.cookie("authToken", token, {
         httpOnly: true,
         secure: process.env.NODE_ENV === "production", // Secure only in production
-        sameSite: "Strict",
+        sameSite: "None",
         maxAge: 3 * 600 * 1000, // 1 hour in ms
       });
 
@@ -240,7 +240,7 @@ router.get("/me",authenticationToken, async (req, res) => {
 //       res.cookie("authToken", token, {
 //         httpOnly: true,
 //         secure: process.env.NODE_ENV === "production", // Set to true in production with HTTPS
-//         sameSite: "Strict",
+//         sameSite: "None",
 //       });
 //       logger.info("User logged in successfully");
 //       return res.status(200).json({ message: "User logged in successfully" });
@@ -312,7 +312,7 @@ router.put(
         res.cookie("authToken", token, {
           httpOnly: true,
           secure: process.env.NODE_ENV === "production",
-          sameSite: "Strict",
+          sameSite: "None",
         });
       }
 
@@ -371,7 +371,7 @@ router.put(
 //       res.cookie("authToken", token, {
 //         httpOnly: true,
 //         secure: true,
-//         sameSite: "Strict",
+//         sameSite: "None",
 //       });
 
 //       logger.info("user updated successfully");
@@ -390,7 +390,7 @@ router.delete("/logout", (req, res) => {
   res.clearCookie("authToken", {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
-    sameSite: "strict",
+    sameSite: "None",
   });
   return res.status(200).json({ message: "Logout Successful" });
 });
